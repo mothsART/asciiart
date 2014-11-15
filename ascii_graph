@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
+# encoding=utf8
+
+import argcomplete
+import argparse
+
+from ascii2graph import interface, __version__, __appname__
+TTYInterface = interface()
+
+def version(args, verbose=False):
+    print('%s %s (python %s)' % (
+        __appname__, __version__, sys.version
+    ))
+
+choices = {
+    'convert': ['c', 'convert', 'convert to ', TTYInterface.convert],
+    'version': ['v', 'version', 'show linkmanager version', version]
+}
+
+
+class Choices(object):
+    """ Ascii Graph choices """
+    short_cmd = [v[0] for v in choices.values()]
+    long_cmd = [v[1] for v in choices.values()]
+
+    @classmethod
+    def cmd(cls):
+        """ Return a list of Ascii Graph choices """
+        return cls.short_cmd + cls.long_cmd
+
+    @classmethod
+    def call(cls, choice):
+        """ Call the good sub-command """
+        for c in choices.values():
+            if c[0] == choice or c[1] == choice:
+                return c[3]
+
+    @staticmethod
+    def descriptions():
+        """ Help give short and long command and her description """
+        description = [
+            '\n'
+            + 'Choices supports the following: (short cmd/cmd)'
+            + '\n'
+        ]
+        max_size = max([max(len(v[0]), len(v[1])) for v in choices.values()])
+        for c in choices:
+            spaces = ' ' * (
+                4 + max_size - len(choices[c][0]) - len(choices[c][1])
+            )
+            description.append(
+                '    {cmd} / {long_cmd}{spaces}  - {help}\n'.format(
+                    cmd=choices[c][0], long_cmd=choices[c][1],
+                    spaces=spaces, help=choices[c][2]
+                )
+            )
+        return ''.join(description)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=Choices.descriptions(),
+        description='Create graph with ascii ...'
+    )
+    parser.add_argument(
+        'choice',
+        choices=Choices.cmd()
+    )
+    parser.add_argument(
+        '-v', '--verbose', help='verbose option',
+        default=False, action='store_const', const='verbose'
+    )
+    parser.add_argument(
+        'value', nargs='*'
+    )
+    argcomplete.autocomplete(parser)
+    args = parser.parse_args()
+    args = vars(args)
+
+    try:
+        Choices.call(args['choice'])(*args['value'])
+    except KeyboardInterrupt:
+        print('\n' + _('Ctrl + C interruption'))
