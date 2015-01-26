@@ -15,7 +15,7 @@ def version(args, verbose=False):
 
 choices = {
     'convert': ['c', 'convert', 'convert to ', TTYInterface.convert],
-    'version': ['v', 'version', 'show linkmanager version', version]
+    'version': ['v', 'version', 'show ASCIIGraph version', version]
 }
 
 
