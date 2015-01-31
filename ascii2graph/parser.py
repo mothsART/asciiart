@@ -33,6 +33,7 @@ class TextDiagram:
             # left position
             if (value == " " and self.left_space):
                 self._text[y][0] = x
+                self._text[y][1] += value
             else:
                 self.left_space = False
                 self._text[y][1] += value

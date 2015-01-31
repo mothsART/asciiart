@@ -43,9 +43,9 @@ class DiagramCreator:
         self.dwg = dwg
         self.diagrams = diagrams
 
-    def create(self):
+    def create(self, rx=0, ry=0):
         for diagram in self.diagrams:
-            self._create_diagram(diagram)
+            self._create_diagram(diagram, rx, ry)
 
             texts = diagram.text.get()
 
@@ -58,13 +58,13 @@ class DiagramCreator:
                 # or when no space left and right
                 horizontal_align = 0
                 if (
-                    (diagram.width - len(texts[text][1].strip())) % 2 == 1
-                    or diagram.width - 2 == len(texts[text][1].strip())
+                    (diagram.width - len(texts[text][1])) % 2 == 1
+                    or diagram.width - 2 == len(texts[text][1])
                 ):
                     horizontal_align = self.size
 
                 # find a strong indication
-                inner_text = texts[text][1].strip()
+                inner_text = texts[text][1].rstrip()
 
                 tspan_list = []
                 first_pattern = "**"
@@ -81,14 +81,15 @@ class DiagramCreator:
                     tspan_list.append(tspan)
                     inner_text = inner_text[substr.end + len(last_pattern):]
 
-                length = sum([len(t.value) for t in tspan_list])
-
+                first_text = tspan_list.pop(0).value
+                length = len(first_text.lstrip()) + sum([len(t.value) for t in tspan_list])
                 textNode = self.group.add(self.dwg.text(
-                    text=tspan_list.pop(0).value,
-                    dx=[horizontal_align],
+                    text=first_text,
+                    dx=[horizontal_align + (len(first_text) - len(first_text.lstrip())) * self.size],
                     dy=[text * self.size * 2 + vertical_align],
                     textLength=length * self.size
                 ))
+
                 for t in tspan_list:
                     tspan_node = self.dwg.tspan(t.value)
                     if t.style == 'normal':
@@ -99,22 +100,30 @@ class DiagramCreator:
 
                 strong_list = []
 
-    def _create_diagram(self, diagram):
+    def _create_diagram(self, diagram, rx=0, ry=0):
         self.group = self.dwg.add(self.dwg.g(
             transform='translate(%s, %s)' % (
                 self.size * diagram.x,
                 2 * self.size * diagram.y
             )
         ))
-        self.group.add(self.dwg.rect(
+        rectangle = self.dwg.rect(
             (0, 0),
             (self.size * diagram.width, 2 * self.size * diagram.height),
-            fill=self.style.fill, stroke=self.style.stroke
-        ))
+            fill=self.style.fill, stroke=self.style.stroke,
+            rx=rx, ry=ry
+        )
+        self.group.add(rectangle)
 
 
 class OvaleDiagramCreator(DiagramCreator):
-    pass
+    rx = 1
+    ry = 1
+    def create(self, rx=0, ry=0):
+        return super().create(
+            rx=self.rx * self.size,
+            ry=self.ry * self.size
+        )
 
 
 class SVGPicture:
