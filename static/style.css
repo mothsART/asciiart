@@ -2,3 +2,8 @@ text {
     font-size: 20px;
     font-family: monospace;
 }
+
+.strong {
+    fill: red;
+    font-weight: bold;
+}

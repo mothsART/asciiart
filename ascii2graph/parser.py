@@ -38,6 +38,8 @@ class TextDiagram:
                 self._text[y][1] += value
         else:
             self.left_space = True
+            if value != " ":
+                x = 0
             self._text[y] = [x, value]
         return True
 

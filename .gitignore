@@ -1,0 +1,37 @@
+# python compiled source and temporary files #
+##############################################
+
+*.py[co]
+*~
+
+# gettext compiled file #
+#########################
+
+*.pot
+*.mo
+
+# Sphinx directories and files #
+################################
+
+docs/tests.xml
+docs/api
+docs/build
+docs/coverage
+
+.coverage
+.installed.cfg
+
+.git*
+
+# Tox #
+#######
+
+.tox
+
+# working folders
+
+experiments
+
+# IDE files
+
+.idea

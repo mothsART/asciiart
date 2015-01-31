@@ -3,9 +3,35 @@ import svgwrite
 from PIL import Image
 
 
+class SubString(str):
+    start = 0
+    end = 0
+
+
+def find_between(s, first, last):
+    try:
+        start = s.index(first) + len(first)
+        end = s.index(last, start)
+    except ValueError:
+        return SubString()
+
+    result = SubString(s[start:end])
+    result.start = start
+    result.end = end
+    return result
+
+
 class Style:
     fill = 'white'
     stroke = 'black'
+
+
+class Tspan:
+    value = ''
+    style = ''
+    def __init__(self, value, style='normal'):
+        self.value = value
+        self.style = style
 
 
 class DiagramCreator:
@@ -28,12 +54,50 @@ class DiagramCreator:
             if ((diagram.height - len(texts)) % 2 == 1):
                 vertical_align = self.size / 2
             for text in texts:
-                self.group.add(self.dwg.text(
-                    text=texts[text][1].strip(),
-                    dx=[texts[text][0] * self.size],
+                # horizontal align when addition of padding-left and padding-right are not pair
+                # or when no space left and right
+                horizontal_align = 0
+                if (
+                    (diagram.width - len(texts[text][1].strip())) % 2 == 1
+                    or diagram.width - 2 == len(texts[text][1].strip())
+                ):
+                    horizontal_align = self.size
+
+                # find a strong indication
+                inner_text = texts[text][1].strip()
+
+                tspan_list = []
+                first_pattern = "**"
+                last_pattern = "**"
+                while True:
+                    substr = find_between(inner_text, first_pattern, last_pattern)
+                    if substr == '':
+                        tspan = Tspan(inner_text)
+                        tspan_list.append(tspan)
+                        break
+                    tspan = Tspan(inner_text[:substr.start - len(first_pattern)])
+                    tspan_list.append(tspan)
+                    tspan = Tspan(substr, 'strong')
+                    tspan_list.append(tspan)
+                    inner_text = inner_text[substr.end + len(last_pattern):]
+
+                length = sum([len(t.value) for t in tspan_list])
+
+                textNode = self.group.add(self.dwg.text(
+                    text=tspan_list.pop(0).value,
+                    dx=[horizontal_align],
                     dy=[text * self.size * 2 + vertical_align],
-                    textLength=len(texts[text][1].strip()) * self.size
+                    textLength=length * self.size
                 ))
+                for t in tspan_list:
+                    tspan_node = self.dwg.tspan(t.value)
+                    if t.style == 'normal':
+                        tspan_node = self.dwg.tspan(t.value)
+                    else:
+                        tspan_node = self.dwg.tspan(t.value, class_=t.style)
+                    node = textNode.add(tspan_node)
+
+                strong_list = []
 
     def _create_diagram(self, diagram):
         self.group = self.dwg.add(self.dwg.g(
@@ -45,8 +109,8 @@ class DiagramCreator:
         self.group.add(self.dwg.rect(
             (0, 0),
             (self.size * diagram.width, 2 * self.size * diagram.height),
-            fill=self.style.fill, stroke=self.style.stroke)
-        )
+            fill=self.style.fill, stroke=self.style.stroke
+        ))
 
 
 class OvaleDiagramCreator(DiagramCreator):
@@ -65,12 +129,16 @@ class SVGPicture:
         #self.dwg.container.Style(content='font-size: 5px;')
 
         # Diagrams
-        diagramCreator = DiagramCreator(size, self.dwg, ascii_parser.diagrams)
-        diagramCreator.create()
+        diagram_creator = DiagramCreator(
+            size, self.dwg, ascii_parser.diagrams
+        )
+        diagram_creator.create()
 
         # Ovale Diagrams
-        ovaleDiagramCreator = OvaleDiagramCreator(size, self.dwg, ascii_parser.ovale_diagrams)
-        ovaleDiagramCreator.create()
+        ovale_diagram_creator = OvaleDiagramCreator(
+            size, self.dwg, ascii_parser.ovale_diagrams
+        )
+        ovale_diagram_creator.create()
 
         # Rectangles
         for rectangle in ascii_parser.rectangles:
