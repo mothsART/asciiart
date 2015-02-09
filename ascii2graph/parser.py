@@ -6,6 +6,7 @@ class Corners:
 
 
 class Rectangle:
+    class_ = None
     def __init__(self, x1, x2, y1, y2):
         self.x = x1
         self.y = y1
@@ -54,6 +55,9 @@ class OvaleDiagram(Diagram):
 
 
 class DiagramCreator:
+    horizontal_c = ['-', '=']
+    vertical_c = ['|', ':']
+
     def __init__(self, grid):
         self.corners = Corners()
 
@@ -68,6 +72,7 @@ class DiagramCreator:
         yield from self.grid.search('+')
 
     def _create(self, point):
+        self.class_ = None
         x1 = point.x
         y1 = point.y
         # left to right
@@ -77,7 +82,9 @@ class DiagramCreator:
             if value == self.corners.top_right:
                 point = Point(value, x=point.x + i, y=point.y)
                 break
-            if value != '-':
+            if value == '=':
+                self.class_ = "dashed"
+            if value not in self.horizontal_c:
                 return False
             i += 1
         # top to bottom
@@ -88,7 +95,9 @@ class DiagramCreator:
                 point = Point(value, x=point.x, y=point.y + i)
                 x2 = point.x
                 break
-            if value != '|':
+            if value == ':':
+                self.class_ = "dashed"
+            if value not in self.vertical_c:
                 return False
             i += 1
         # right to left
@@ -99,7 +108,9 @@ class DiagramCreator:
                 point = Point(value, x=point.x - i, y=point.y)
                 y2 = point.y
                 break
-            if value != '-':
+            if value == '=':
+                self.class_ = "dashed"
+            if value not in self.horizontal_c:
                 return False
             i += 1
         # bottom to top
@@ -109,20 +120,24 @@ class DiagramCreator:
             if value == self.corners.top_left:
                 point = Point(value, x=point.x, y=point.y - i)
                 break
-            if value != '|':
+            if value == ':':
+                self.class_ = "dashed"
+            if value not in self.vertical_c:
                 return False
             i += 1
 
         diagram = self._get_diagram(x1 - 1, x2, y1, y2)
         if not diagram:
-            self.rectangles.append(Rectangle(x1 - 1, x2, y1, y2))
+            rectangle = Rectangle(x1 - 1, x2, y1, y2)
+            rectangle.class_ = self.class_
+            self.rectangles.append(rectangle)
             return True
         self.diagrams.append(diagram)
         return True
 
     def _get_diagram(
         self, init_x=0, end_x=0, init_y=0, end_y=0,
-        pattern=['-', '|']
+        pattern=['-', '=','|', ':']
     ):
         text = TextDiagram()
         for y in range(init_y + 1, end_y):
@@ -132,7 +147,8 @@ class DiagramCreator:
                     text.add(x=x - init_x, y=y - init_y, value=value)
         if not text.get():
             return False
-        diagram = OvaleDiagram(init_x, end_x, init_y, end_y)
+        diagram = Diagram(init_x, end_x, init_y, end_y)
+        diagram.class_ = self.class_
         diagram.text = text
         return diagram
 

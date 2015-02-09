@@ -101,18 +101,24 @@ class DiagramCreator:
                 strong_list = []
 
     def _create_diagram(self, diagram, rx=0, ry=0):
+        class_ = {}
+        if diagram.class_:
+            class_ = {"class_": "dashed"}
+
+        rectangle = self.dwg.rect(
+            (0, 0),
+            (self.size * diagram.width, 2 * self.size * diagram.height),
+            fill=self.style.fill, stroke=self.style.stroke,
+            rx=rx, ry=ry, **class_
+        )
+
         self.group = self.dwg.add(self.dwg.g(
             transform='translate(%s, %s)' % (
                 self.size * diagram.x,
                 2 * self.size * diagram.y
             )
         ))
-        rectangle = self.dwg.rect(
-            (0, 0),
-            (self.size * diagram.width, 2 * self.size * diagram.height),
-            fill=self.style.fill, stroke=self.style.stroke,
-            rx=rx, ry=ry
-        )
+
         self.group.add(rectangle)
 
 
@@ -151,11 +157,13 @@ class SVGPicture:
 
         # Rectangles
         for rectangle in ascii_parser.rectangles:
-            self.dwg.add(self.dwg.rect(
+            new_rectangle = self.dwg.add(self.dwg.rect(
                 (size * rectangle.x, size * rectangle.y),
                 (size * rectangle.width, size * rectangle.height),
-                fill='white', stroke='black')
-            )
+                fill='white', stroke='black'
+            ))
+            if rectangle.class_:
+                new_rectangle.class_ = rectangle.class_
         self.dwg.save()
 
 
