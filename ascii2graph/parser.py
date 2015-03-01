@@ -1,3 +1,6 @@
+from .grid import Point, Grid
+
+
 class Corners:
     top_left = '+'
     top_right = '+'
@@ -7,6 +10,8 @@ class Corners:
 
 class Rectangle:
     class_ = None
+    text = None
+
     def __init__(self, x1, x2, y1, y2):
         self.x = x1
         self.y = y1
@@ -14,47 +19,58 @@ class Rectangle:
         self.y2 = y2
         self.width = x2 - x1
         self.height = y2 - y1
+        self.parent = None
+        self.childs = []
+
+    def __str__(self):
+        return 'value: "{0}" x: "{1}" y: "{2}" x2: "{3} y2: {4}'.format(
+            hash(self), self.x, self.y, self.x2, self.y2
+        )
+
+
+class Line(Point):
+    """ diff with Point :
+        * Point = only one caracter
+        * Line = multi caracteres on same vertical coordinates (y)
+    """
+    pass
 
 
 class TextDiagram:
-    left_space = True
-
     def __init__(self):
-        self._text = {}
+        self._is_optimize = False
+        self._lines = []
 
-    def get(self, x=None, y=None):
-        if y in self._text:
-            return self._text[y]
-        if self._text == {}:
-            return False
-        return self._text
+    def _optimization(self):
+        for line in self._lines:
+            if line.value.strip() == '':
+                self._lines.remove(line)
+        self._is_optimize = True
 
-    def add(self, x=0, y=0, value=''):
-        if y in self._text:
-            # left position
-            if (value == " " and self.left_space):
-                self._text[y][0] = x
-                self._text[y][1] += value
-            else:
-                self.left_space = False
-                self._text[y][1] += value
-        else:
-            self.left_space = True
-            if value != " ":
-                x = 0
-            self._text[y] = [x, value]
-        return True
+    def __str__(self):
+        if not self._is_optimize:
+            self._optimization()
+        string = ''.join([str(line) + '\n' for line in self._lines])
+        # suppress last Carriage return
+        return string[:-1]
 
+    def __iter__(self):
+        if not self._is_optimize:
+            self._optimization()
+        for line in self._lines:
+            yield line
 
-class Diagram(Rectangle):
-    text = None
-
-
-class OvaleDiagram(Diagram):
-    text = None
+    def add(self, point):
+        for line in self._lines:
+            if point.y == line.y:
+                line.value += point.value
+                return
+        self._lines.append(Line(
+            point.value, point.x, point.y
+        ))
 
 
-class DiagramCreator:
+class RectangleCreator:
     horizontal_c = ['-', '=']
     vertical_c = ['|', ':']
 
@@ -126,34 +142,13 @@ class DiagramCreator:
                 return False
             i += 1
 
-        diagram = self._get_diagram(x1 - 1, x2, y1, y2)
-        if not diagram:
-            rectangle = Rectangle(x1 - 1, x2, y1, y2)
-            rectangle.class_ = self.class_
-            self.rectangles.append(rectangle)
-            return True
-        self.diagrams.append(diagram)
+        rectangle = Rectangle(x1 - 1, x2, y1, y2)
+        rectangle.class_ = self.class_
+        self.rectangles.append(rectangle)
         return True
 
-    def _get_diagram(
-        self, init_x=0, end_x=0, init_y=0, end_y=0,
-        pattern=['-', '=','|', ':']
-    ):
-        text = TextDiagram()
-        for y in range(init_y + 1, end_y):
-            for x in range(init_x + 1, end_x):
-                value = self.grid.value(x, y)
-                if value not in pattern:
-                    text.add(x=x - init_x, y=y - init_y, value=value)
-        if not text.get():
-            return False
-        diagram = Diagram(init_x, end_x, init_y, end_y)
-        diagram.class_ = self.class_
-        diagram.text = text
-        return diagram
 
-
-class OvaleDiagramCreator(DiagramCreator):
+class OvaleRectangleCreator(RectangleCreator):
     def __init__(self, grid):
         self.corners = Corners()
         self.corners.top_left = '/'
@@ -173,76 +168,93 @@ class OvaleDiagramCreator(DiagramCreator):
         yield from self.grid.search('\\')
 
 
-class Point:
-    def __init__(self, value='', x=0, y=0):
-        self.value = value
-        self.x = x
-        self.y = y
-
-    def __str__(self):
-        return 'value: "{0}" x: "{1}" y: "{2}"'.format(
-            self.value, self.x, self.y
-        )
-
-
-class Grid:
-    max_x = 0
-    max_y = 0
-
-    def __init__(self, lines):
-        self._array = {}
-
-        for line_nb, line in enumerate(lines):
-            line = line.rstrip()
-            self._array[line_nb] = {}
-            char_len = len(line.rstrip()) + 1
-            if char_len > self.max_x:
-                self.max_x = char_len
-            for char_nb, character in enumerate(line):
-                self._array[line_nb][char_nb] = character
-
-        self.max_y = len(lines)
-
-        for y in range(0, self.max_y):
-            if y not in self._array:
-                self._array[y] = {}
-            if len(self._array[y]) < self.max_x:
-                for pos in range(len(self._array[y]), self.max_x + 1):
-                    self._array[y][pos] = ' '
-
-    def __str__(self):
-        stream = ''
-        for y in range(0, self.max_y):
-            for x in range(0, self.max_x):
-                stream += self._array[y][x]
-            if y != self.max_y:
-                stream += '\n'
-        return stream
-
-    def value(self, x=0, y=0):
-        if x > self.max_x:
-            return False
-        if y >= self.max_y:
-            return False
-        return self._array[y][x]
-
-    def search(self, value):
-        for y in range(0, self.max_y):
-            for x in range(0, self.max_x):
-                if self._array[y][x] == value:
-                    yield Point(value, x, y)
-
-
 class AsciiParser:
     def __init__(self, lines):
         self.rectangles = []
-        grid = Grid(lines)
-        #print(grid)
-        #print(grid._array)
+        self.ovale_rectangles = []
+        self.diagrams = []
+        self.ovale_diagrams = []
 
-        diagram_creator = DiagramCreator(grid)
-        ovale_diagram_creator = OvaleDiagramCreator(grid)
+        self.grid = Grid(lines)
+        self.sorted_rectangles = []
 
-        self.ovale_diagrams = (diagram for diagram in ovale_diagram_creator.diagrams)
-        self.diagrams = (diagram for diagram in diagram_creator.diagrams)
-        self.rectangles = (rectangle for rectangle in diagram_creator.rectangles)
+        diagram_creator = RectangleCreator(self.grid)
+        ovale_diagram_creator = OvaleRectangleCreator(self.grid)
+
+        self.ovale_rectangles = [diagram for diagram in ovale_diagram_creator.rectangles]
+        self.rectangles = [diagram for diagram in diagram_creator.rectangles]
+
+        rectangles = self.ovale_rectangles + self.rectangles
+
+        self.intersection(rectangles)
+
+        for rectangle in self.sorted_rectangles:
+            self.get_diagram(rectangle)
+
+        #print(self.rectangles)
+
+    def intersection(self, rectangles):
+        # Sorted by width
+        self.sorted_rectangles = sorted(
+            rectangles,
+            key=lambda rectangle: rectangle.width
+        )
+        for index, rectangle in enumerate(self.sorted_rectangles):
+            if index + 1 == len(self.sorted_rectangles):
+                break
+            self._heritage(self.sorted_rectangles[index + 1::], rectangle)
+
+    def _heritage(self, greaters_rectangles, rectangle):
+        for greater_rectangle in greaters_rectangles:
+            if greater_rectangle.x < rectangle.x and greater_rectangle.x2 > rectangle.x2:
+                greater_rectangle.childs.append(rectangle)
+                rectangle.parent = greater_rectangle
+                return
+
+    def hierarchy(self):
+        """ Print Hierarchy """
+        for rectangle in reversed(self.sorted_rectangles):
+            print('>>>', rectangle)
+            if rectangle.parent:
+                print('parent >')
+                print(' ' * 4, rectangle.parent)
+            if len(rectangle.childs) > 0:
+                print('childs >')
+            for child in rectangle.childs:
+                print(' ' * 4, child)
+
+    def get_diagram(
+        self, rectangle,
+        pattern=['-', '=', '|', ':']
+    ):
+        text = TextDiagram()
+
+        grid_points = []
+        for y in range(rectangle.y + 1, rectangle.y2):
+            for x in range(rectangle.x + 1, rectangle.x2):
+                grid_points.append(Point(
+                    self.grid.value(x, y),
+                    x, y
+                ))
+        # Keep only points not included on Diagram's child
+        for point in grid_points:
+            for child in rectangle.childs:
+                if(
+                    child.x >= point.x and child.x2 <= point.x
+                    and child.y >= point.y and child.y2 <= point.y2
+                ):
+                    grid_values.remove(point)
+
+        # Add text
+        for point in grid_points:
+            if point.value not in pattern:
+                text.add(point)
+
+        for line in text:
+            print(line)
+        print(text)
+        #self.rectangles.remove(rectangle)
+        if rectangle.class_ == "dashed":
+            self.ovale_diagrams.append(rectangle)
+        else:
+            self.diagrams.append(rectangle)
