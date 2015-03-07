@@ -1,0 +1,10 @@
+Pillow==2.6.0
+argcomplete==0.8.1
+cov-core==1.15.0
+coverage==3.7.1
+invoke==0.9.0
+py==1.4.26
+pyparsing==2.0.3
+pytest==2.6.4
+pytest-cov==1.8.1
+svgwrite==1.1.6

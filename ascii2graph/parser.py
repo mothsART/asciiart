@@ -60,6 +60,9 @@ class TextDiagram:
         for line in self._lines:
             yield line
 
+    def __len__(self):
+        return len(self._lines)
+
     def add(self, point):
         for line in self._lines:
             if point.y == line.y:
@@ -191,7 +194,12 @@ class AsciiParser:
         for rectangle in self.sorted_rectangles:
             self.get_diagram(rectangle)
 
-        #print(self.rectangles)
+        self.rectangles = [] #reversed(self.sorted_rectangles)
+        self.diagrams = sorted(
+            self.diagrams,
+            key=lambda diagram: diagram.width,
+            reverse=True
+        )
 
     def intersection(self, rectangles):
         # Sorted by width
@@ -206,7 +214,10 @@ class AsciiParser:
 
     def _heritage(self, greaters_rectangles, rectangle):
         for greater_rectangle in greaters_rectangles:
-            if greater_rectangle.x < rectangle.x and greater_rectangle.x2 > rectangle.x2:
+            if (
+                greater_rectangle.x < rectangle.x
+                and greater_rectangle.x2 > rectangle.x2
+            ):
                 greater_rectangle.childs.append(rectangle)
                 rectangle.parent = greater_rectangle
                 return
@@ -227,7 +238,7 @@ class AsciiParser:
         self, rectangle,
         pattern=['-', '=', '|', ':']
     ):
-        text = TextDiagram()
+        texts = TextDiagram()
 
         grid_points = []
         for y in range(rectangle.y + 1, rectangle.y2):
@@ -248,13 +259,14 @@ class AsciiParser:
         # Add text
         for point in grid_points:
             if point.value not in pattern:
-                text.add(point)
+                texts.add(point)
 
-        for line in text:
-            print(line)
-        print(text)
-        #self.rectangles.remove(rectangle)
+        if len(texts) == 0:
+            return
+
+        rectangle.texts = texts
         if rectangle.class_ == "dashed":
             self.ovale_diagrams.append(rectangle)
         else:
             self.diagrams.append(rectangle)
+        self.rectangles.remove(rectangle)

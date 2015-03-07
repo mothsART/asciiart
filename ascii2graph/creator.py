@@ -27,11 +27,12 @@ class Style:
 
 
 class Tspan:
-    value = ''
-    style = ''
-    def __init__(self, value, style='normal'):
+    def __init__(self, value='', style='normal'):
         self.value = value
         self.style = style
+
+    def __str__(self):
+        return self.value
 
 
 class DiagramCreator:
@@ -47,24 +48,24 @@ class DiagramCreator:
         for diagram in self.diagrams:
             self._create_diagram(diagram, rx, ry)
 
-            texts = diagram.text.get()
+            texts = diagram.texts
 
-            # vertical align when addition of padding-top and padding-bottom are not pair
+            # vertical alignment when addition of padding-top and padding-bottom are not pair
             vertical_align = 0
             if ((diagram.height - len(texts)) % 2 == 1):
                 vertical_align = self.size / 2
             for text in texts:
-                # horizontal align when addition of padding-left and padding-right are not pair
+                # horizontal alignment when addition of padding-left and padding-right are not pair
                 # or when no space left and right
                 horizontal_align = 0
                 if (
-                    (diagram.width - len(texts[text][1])) % 2 == 1
-                    or diagram.width - 2 == len(texts[text][1])
+                    (diagram.width - len(text.value)) % 2 == 1
+                    or diagram.width - 2 == len(text.value)
                 ):
                     horizontal_align = self.size
 
                 # find a strong indication
-                inner_text = texts[text][1].rstrip()
+                inner_text = text.value.rstrip()
 
                 tspan_list = []
                 first_pattern = "**"
@@ -83,10 +84,10 @@ class DiagramCreator:
 
                 first_text = tspan_list.pop(0).value
                 length = len(first_text.lstrip()) + sum([len(t.value) for t in tspan_list])
-                textNode = self.group.add(self.dwg.text(
+                text_node = self.group.add(self.dwg.text(
                     text=first_text,
                     dx=[horizontal_align + (len(first_text) - len(first_text.lstrip())) * self.size],
-                    dy=[text * self.size * 2 + vertical_align],
+                    dy=[(text.y - 1) * self.size * 2 + vertical_align],
                     textLength=length * self.size
                 ))
 
@@ -94,9 +95,9 @@ class DiagramCreator:
                     tspan_node = self.dwg.tspan(t.value)
                     if t.style == 'normal':
                         tspan_node = self.dwg.tspan(t.value)
-                    else:
+                    elif (t.value != ""):
                         tspan_node = self.dwg.tspan(t.value, class_=t.style)
-                    node = textNode.add(tspan_node)
+                    node = text_node.add(tspan_node)
 
                 strong_list = []
 
@@ -125,6 +126,7 @@ class DiagramCreator:
 class OvaleDiagramCreator(DiagramCreator):
     rx = 1
     ry = 1
+
     def create(self, rx=0, ry=0):
         return super().create(
             rx=self.rx * self.size,
@@ -141,7 +143,16 @@ class SVGPicture:
             self.path, profile='full'
         )
         self.dwg.add_stylesheet('static/style.css', title='style_css')
-        #self.dwg.container.Style(content='font-size: 5px;')
+
+        # Rectangles
+        for rectangle in ascii_parser.rectangles:
+            new_rectangle = self.dwg.add(self.dwg.rect(
+                (size * rectangle.x, size * rectangle.y),
+                (size * rectangle.width, size * rectangle.height),
+                fill='white', stroke='black'
+            ))
+            if rectangle.class_:
+                new_rectangle.class_ = rectangle.class_
 
         # Diagrams
         diagram_creator = DiagramCreator(
@@ -155,15 +166,6 @@ class SVGPicture:
         )
         ovale_diagram_creator.create()
 
-        # Rectangles
-        for rectangle in ascii_parser.rectangles:
-            new_rectangle = self.dwg.add(self.dwg.rect(
-                (size * rectangle.x, size * rectangle.y),
-                (size * rectangle.width, size * rectangle.height),
-                fill='white', stroke='black'
-            ))
-            if rectangle.class_:
-                new_rectangle.class_ = rectangle.class_
         self.dwg.save()
 
 
