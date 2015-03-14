@@ -145,7 +145,7 @@ class RectangleCreator:
                 return False
             i += 1
 
-        rectangle = Rectangle(x1 - 1, x2, y1, y2)
+        rectangle = Rectangle(x1, x2 + 1, y1, y2)
         rectangle.class_ = self.class_
         self.rectangles.append(rectangle)
         return True
@@ -174,9 +174,7 @@ class OvaleRectangleCreator(RectangleCreator):
 class AsciiParser:
     def __init__(self, lines):
         self.rectangles = []
-        self.ovale_rectangles = []
         self.diagrams = []
-        self.ovale_diagrams = []
 
         self.grid = Grid(lines)
         self.sorted_rectangles = []
@@ -194,12 +192,14 @@ class AsciiParser:
         for rectangle in self.sorted_rectangles:
             self.get_diagram(rectangle)
 
-        self.rectangles = [] #reversed(self.sorted_rectangles)
         self.diagrams = sorted(
             self.diagrams,
             key=lambda diagram: diagram.width,
             reverse=True
         )
+
+        # for d in self.diagrams:
+        #     print(d)
 
     def intersection(self, rectangles):
         # Sorted by width
@@ -238,35 +238,43 @@ class AsciiParser:
         self, rectangle,
         pattern=['-', '=', '|', ':']
     ):
-        texts = TextDiagram()
+        text = TextDiagram()
 
         grid_points = []
-        for y in range(rectangle.y + 1, rectangle.y2):
-            for x in range(rectangle.x + 1, rectangle.x2):
+        for y in range(rectangle.y + 1, rectangle.y2 - 1):
+            for x in range(rectangle.x + 1, rectangle.x2 - 1):
                 grid_points.append(Point(
                     self.grid.value(x, y),
                     x, y
                 ))
         # Keep only points not included on Diagram's child
+        grid_points_without_childs = []
         for point in grid_points:
             for child in rectangle.childs:
                 if(
-                    child.x >= point.x and child.x2 <= point.x
-                    and child.y >= point.y and child.y2 <= point.y2
+                    point.x >= child.x and point.x <= child.x2
+                    and point.y >= child.y and point.y <= child.y2
                 ):
-                    grid_values.remove(point)
+                    point.value = " "
+                    text.add(point)
+                else:
+                    text.add(point)
 
-        # Add text
-        for point in grid_points:
-            if point.value not in pattern:
-                texts.add(point)
+        # only leaft objects
+        if rectangle.childs == []:
+            grid_points = []
+            for y in range(rectangle.y + 1, rectangle.y2):
+                for x in range(rectangle.x + 1, rectangle.x2 - 1):
+                    grid_points.append(Point(
+                        self.grid.value(x, y),
+                        x, y - rectangle.y + 1
+                    ))
+            for point in grid_points:
+                text.add(point)
 
-        if len(texts) == 0:
+        if str(text).strip() == 0:
+            self.diagrams.append(rectangle)
             return
 
-        rectangle.texts = texts
-        if rectangle.class_ == "dashed":
-            self.ovale_diagrams.append(rectangle)
-        else:
-            self.diagrams.append(rectangle)
-        self.rectangles.remove(rectangle)
+        rectangle.text = text
+        self.diagrams.append(rectangle)

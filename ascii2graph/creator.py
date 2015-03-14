@@ -39,67 +39,69 @@ class DiagramCreator:
     style = Style()
     group = None
 
-    def __init__(self, size, dwg, diagrams):
+    def __init__(self, size, dwg, diagram):
         self.size = size
         self.dwg = dwg
-        self.diagrams = diagrams
+        self.diagram = diagram
 
     def create(self, rx=0, ry=0):
-        for diagram in self.diagrams:
-            self._create_diagram(diagram, rx, ry)
+        self._create_diagram(self.diagram, rx, ry)
 
-            texts = diagram.texts
+        texts = self.diagram.text
 
-            # vertical alignment when addition of padding-top and padding-bottom are not pair
-            vertical_align = 0
-            if ((diagram.height - len(texts)) % 2 == 1):
-                vertical_align = self.size / 2
-            for text in texts:
-                # horizontal alignment when addition of padding-left and padding-right are not pair
-                # or when no space left and right
-                horizontal_align = 0
-                if (
-                    (diagram.width - len(text.value)) % 2 == 1
-                    or diagram.width - 2 == len(text.value)
-                ):
-                    horizontal_align = self.size
+        # vertical alignment when addition of padding-top and padding-bottom are not pair
+        vertical_align = 0
+        if (
+            (self.diagram.height - len(texts)) % 2 == 1
+            or self.diagram.height % 2 == 1
+        ):
+            vertical_align = self.size / 2
+        for text in texts:
+            # horizontal alignment when addition of padding-left and padding-right are not pair
+            # or when no space left and right
+            horizontal_align = 0
+            if (
+                (self.diagram.width - len(text.value)) % 2 == 1
+                or self.diagram.width - 2 == len(text.value)
+            ):
+                horizontal_align = self.size
 
-                # find a strong indication
-                inner_text = text.value.rstrip()
+            # find a strong indication
+            inner_text = text.value.rstrip()
 
-                tspan_list = []
-                first_pattern = "**"
-                last_pattern = "**"
-                while True:
-                    substr = find_between(inner_text, first_pattern, last_pattern)
-                    if substr == '':
-                        tspan = Tspan(inner_text)
-                        tspan_list.append(tspan)
-                        break
-                    tspan = Tspan(inner_text[:substr.start - len(first_pattern)])
+            tspan_list = []
+            first_pattern = "**"
+            last_pattern = "**"
+            while True:
+                substr = find_between(inner_text, first_pattern, last_pattern)
+                if substr == '':
+                    tspan = Tspan(inner_text)
                     tspan_list.append(tspan)
-                    tspan = Tspan(substr, 'strong')
-                    tspan_list.append(tspan)
-                    inner_text = inner_text[substr.end + len(last_pattern):]
+                    break
+                tspan = Tspan(inner_text[:substr.start - len(first_pattern)])
+                tspan_list.append(tspan)
+                tspan = Tspan(substr, 'strong')
+                tspan_list.append(tspan)
+                inner_text = inner_text[substr.end + len(last_pattern):]
 
-                first_text = tspan_list.pop(0).value
-                length = len(first_text.lstrip()) + sum([len(t.value) for t in tspan_list])
-                text_node = self.group.add(self.dwg.text(
-                    text=first_text,
-                    dx=[horizontal_align + (len(first_text) - len(first_text.lstrip())) * self.size],
-                    dy=[(text.y - 1) * self.size * 2 + vertical_align],
-                    textLength=length * self.size
-                ))
+            first_text = tspan_list.pop(0).value
+            length = len(first_text.lstrip()) + sum(
+                [len(t.value) for t in tspan_list]
+            )
+            text_node = self.group.add(self.dwg.text(
+                text=first_text,
+                dx=[horizontal_align + (len(first_text) - len(first_text.lstrip())) * self.size],
+                dy=[(text.y - 1) * self.size * 2 + vertical_align],
+                textLength=length * self.size
+            ))
 
-                for t in tspan_list:
+            for t in tspan_list:
+                tspan_node = self.dwg.tspan(t.value)
+                if t.style == 'normal':
                     tspan_node = self.dwg.tspan(t.value)
-                    if t.style == 'normal':
-                        tspan_node = self.dwg.tspan(t.value)
-                    elif (t.value != ""):
-                        tspan_node = self.dwg.tspan(t.value, class_=t.style)
-                    node = text_node.add(tspan_node)
-
-                strong_list = []
+                elif (t.value != ""):
+                    tspan_node = self.dwg.tspan(t.value, class_=t.style)
+                text_node.add(tspan_node)
 
     def _create_diagram(self, diagram, rx=0, ry=0):
         class_ = {}
@@ -145,26 +147,30 @@ class SVGPicture:
         self.dwg.add_stylesheet('static/style.css', title='style_css')
 
         # Rectangles
-        for rectangle in ascii_parser.rectangles:
-            new_rectangle = self.dwg.add(self.dwg.rect(
-                (size * rectangle.x, size * rectangle.y),
-                (size * rectangle.width, size * rectangle.height),
-                fill='white', stroke='black'
-            ))
-            if rectangle.class_:
-                new_rectangle.class_ = rectangle.class_
+        for diagram in ascii_parser.diagrams:
+            if diagram.text:
+                # Diagrams
+                diagram_creator = DiagramCreator(
+                    size, self.dwg, diagram
+                )
+                diagram_creator.create()
+            else:
+                # Single Rectangles
+                class_ = {}
+                if diagram.class_:
+                    class_["class_"] = "dashed"
 
-        # Diagrams
-        diagram_creator = DiagramCreator(
-            size, self.dwg, ascii_parser.diagrams
-        )
-        diagram_creator.create()
+                self.dwg.add(self.dwg.rect(
+                    (size * diagram.x, 2 * size * diagram.y),
+                    (size * diagram.width, 2 * size * diagram.height),
+                    fill='white', stroke='black', **class_
+                ))
 
-        # Ovale Diagrams
-        ovale_diagram_creator = OvaleDiagramCreator(
-            size, self.dwg, ascii_parser.ovale_diagrams
-        )
-        ovale_diagram_creator.create()
+        # # Ovale Diagrams
+        # ovale_diagram_creator = OvaleDiagramCreator(
+        #     size, self.dwg, ascii_parser.ovale_diagrams
+        # )
+        # ovale_diagram_creator.create()
 
         self.dwg.save()
 

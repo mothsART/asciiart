@@ -1,6 +1,5 @@
 
- +-----------------------------------------------+
- |         Supervisor **1** et **paf** ya        |
- |Surveille le bon fonctionnement de NGINX et UWS|
- +-----------------------------------------------+
-
+  +-----------------------------------------------+
+  |         Supervisor **1** et **paf** ya        |
+  |Surveille le bon fonctionnement de NGINX et UWS|
+  +-----------------------------------------------+

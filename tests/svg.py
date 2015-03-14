@@ -41,4 +41,6 @@ def test_styling_text(tmpdir):
 
 
 def test_heritage(tmpdir):
+    """ Test a set of diagrams : several in another :
+    must be interpretate as a hierarchical tree """
     pass
