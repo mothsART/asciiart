@@ -6,5 +6,5 @@ from .parser import (   # noqa
 from .svg import (   # noqa
     test_one_diagram,
     test_styling_text,
-    test_heritage
+    test_heritage_1
 )

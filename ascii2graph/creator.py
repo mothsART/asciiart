@@ -49,7 +49,8 @@ class DiagramCreator:
 
         texts = self.diagram.text
 
-        # vertical alignment when addition of padding-top and padding-bottom are not pair
+        # vertical alignment when addition
+        # of padding-top and padding-bottom are not pair
         vertical_align = 0
         if (
             (self.diagram.height - len(texts)) % 2 == 1
@@ -57,7 +58,8 @@ class DiagramCreator:
         ):
             vertical_align = self.size / 2
         for text in texts:
-            # horizontal alignment when addition of padding-left and padding-right are not pair
+            # horizontal alignment when addition
+            # of padding-left and padding-right are not pair
             # or when no space left and right
             horizontal_align = 0
             if (

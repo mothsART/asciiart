@@ -42,7 +42,9 @@ class TextDiagram:
         self._lines = []
 
     def _optimization(self):
+        print('opt')
         for line in self._lines:
+            print('>>', line)
             if line.value.strip() == '':
                 self._lines.remove(line)
         self._is_optimize = True

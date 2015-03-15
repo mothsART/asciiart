@@ -40,7 +40,10 @@ def test_styling_text(tmpdir):
     assert str_to_compare[0] == str_to_compare[1]
 
 
-def test_heritage(tmpdir):
+def test_heritage_1(tmpdir):
     """ Test a set of diagrams : several in another :
     must be interpretate as a hierarchical tree """
-    pass
+    str_to_compare = paths_to_str(
+        tmpdir, 'heritage_1.txt', 'heritage_1.svg'
+    )
+    assert str_to_compare[0] == str_to_compare[1]
