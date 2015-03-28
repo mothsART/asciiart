@@ -58,15 +58,12 @@ class DiagramCreator:
         ):
             vertical_align = self.size / 2
         for text in texts:
-            # horizontal alignment when addition
-            # of padding-left and padding-right are not pair
-            # or when no space left and right
-            horizontal_align = 0
-            if (
-                (self.diagram.width - len(text.value)) % 2 == 1
-                or self.diagram.width - 2 == len(text.value)
-            ):
-                horizontal_align = self.size
+            # diagram with is parity or not
+            horizontal_align = self.size
+            if self.diagram.width % 2 == 1:
+                horizontal_align = self.size / 2
+            if len(text.value) % 2 == 1:
+                horizontal_align += self.size / 2
 
             # find a strong indication
             inner_text = text.value.rstrip()
@@ -74,6 +71,7 @@ class DiagramCreator:
             tspan_list = []
             first_pattern = "**"
             last_pattern = "**"
+            inc_strong = 0
             while True:
                 substr = find_between(inner_text, first_pattern, last_pattern)
                 if substr == '':
@@ -85,6 +83,7 @@ class DiagramCreator:
                 tspan = Tspan(substr, 'strong')
                 tspan_list.append(tspan)
                 inner_text = inner_text[substr.end + len(last_pattern):]
+                inc_strong += 1
 
             first_text = tspan_list.pop(0).value
             length = len(first_text.lstrip()) + sum(
@@ -92,7 +91,7 @@ class DiagramCreator:
             )
             text_node = self.group.add(self.dwg.text(
                 text=first_text,
-                dx=[horizontal_align + (len(first_text) - len(first_text.lstrip())) * self.size],
+                dx=[horizontal_align + (text.x + inc_strong * 2) * self.size],
                 dy=[(text.y - 1) * self.size * 2 + vertical_align],
                 textLength=length * self.size
             ))

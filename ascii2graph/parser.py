@@ -1,3 +1,4 @@
+#import pudb
 from .grid import Point, Grid
 
 
@@ -30,8 +31,8 @@ class Rectangle:
 
 class Line(Point):
     """ diff with Point :
-        * Point = only one caracter
-        * Line = multi caracteres on same vertical coordinates (y)
+        * Point = only one character
+        * Line = multi characters on same vertical coordinates (y)
     """
     pass
 
@@ -41,12 +42,47 @@ class TextDiagram:
         self._is_optimize = False
         self._lines = []
 
+    def _split_lines(self, line):
+        sub_str = line.value.split(" ")
+
+        line_list = []
+
+        x = 0
+        value = ""
+        len_lspace = len(value) - len(value.lstrip())
+        for i, item in enumerate(sub_str):
+            if item == "":
+                x += 1
+                continue
+            try:
+                if sub_str[i + 1] == "":
+                    value = value + item
+                    line_list.append(Line(value, x + len_lspace, line.y))
+                    value = ""
+                    x = 0
+                else:
+                    value = value + item + " "
+            except IndexError:
+                value = value + item
+                line_list.append(Line(value, x + len_lspace, line.y))
+        return line_list
+
     def _optimization(self):
-        print('opt')
+        empty_lines = []
         for line in self._lines:
-            print('>>', line)
-            if line.value.strip() == '':
-                self._lines.remove(line)
+            # v = self._split_lines(line)
+            # if v != []:
+            #     print('###>', line, v[0].value, v[0].x)
+            # else:
+            #     print('<<<', line)
+            len_lspace = len(line.value) - len(line.value.lstrip())
+            line.x = len_lspace
+            line.value = line.value.strip()
+            #print(line.value, len_lspace, '<')
+
+            if line.value == '':
+                empty_lines.append(line)
+        self._lines = list(set(self._lines) - set(empty_lines))
         self._is_optimize = True
 
     def __str__(self):
@@ -194,6 +230,7 @@ class AsciiParser:
         for rectangle in self.sorted_rectangles:
             self.get_diagram(rectangle)
 
+        #pudb.set_trace()
         self.diagrams = sorted(
             self.diagrams,
             key=lambda diagram: diagram.width,
@@ -202,6 +239,8 @@ class AsciiParser:
 
         # for d in self.diagrams:
         #     print(d)
+
+        self.hierarchy()
 
     def intersection(self, rectangles):
         # Sorted by width
@@ -219,22 +258,56 @@ class AsciiParser:
             if (
                 greater_rectangle.x < rectangle.x
                 and greater_rectangle.x2 > rectangle.x2
+                and greater_rectangle.y < rectangle.y
+                and greater_rectangle.y2 > rectangle.y2
             ):
                 greater_rectangle.childs.append(rectangle)
                 rectangle.parent = greater_rectangle
                 return
 
+    def _travel_hierarchy(self, rectangle, inc=0, prefix='├'):
+        print(" " * (4 * inc), prefix + '──►', rectangle)
+        if rectangle.childs != []:
+            for child_inc, child in enumerate(rectangle.childs):
+                child_prefix = '├'
+                if child_inc == len(rectangle.childs) - 1:
+                    child_prefix = '└'
+                self._travel_hierarchy(child, inc + 1, prefix=child_prefix)
+
     def hierarchy(self):
         """ Print Hierarchy """
+        rectangle_without_hierarchy = []
         for rectangle in reversed(self.sorted_rectangles):
-            print('>>>', rectangle)
-            if rectangle.parent:
-                print('parent >')
-                print(' ' * 4, rectangle.parent)
-            if len(rectangle.childs) > 0:
-                print('childs >')
-            for child in rectangle.childs:
-                print(' ' * 4, child)
+            if not rectangle.parent and rectangle.childs == []:
+                rectangle_without_hierarchy.append(rectangle)
+
+        # display
+        if rectangle_without_hierarchy != []:
+            print('┌────────────────────────────────┐')
+            print('│ rectangle(s) without hierarchy │')
+            print('├────────────────────────────────┘')
+            prefix = '├'
+            for inc, rectangle in enumerate(rectangle_without_hierarchy):
+                if (inc == len(rectangle_without_hierarchy) - 1):
+                    prefix = '└'
+                print(prefix + '──►', rectangle)
+
+            print("=" * 50)
+
+        sorted_rectangles = list(
+            set(self.sorted_rectangles)
+            - set(rectangle_without_hierarchy)
+        )
+        parents_rectangles = []
+        for rectangle in reversed(sorted_rectangles):
+            if not rectangle.parent:
+                parents_rectangles.append(rectangle)
+
+        print('┌─────────────────────────────┐')
+        print('│ rectangle(s) with hierarchy │')
+        print('└─────────────────────────────┘')
+        for rectangle in parents_rectangles:
+            self._travel_hierarchy(rectangle, prefix='─')
 
     def get_diagram(
         self, rectangle,
@@ -260,6 +333,7 @@ class AsciiParser:
                     point.value = " "
                     text.add(point)
                 else:
+                    print(point)
                     text.add(point)
 
         # only leaft objects
