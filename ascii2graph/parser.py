@@ -1,4 +1,5 @@
 #import pudb
+import copy
 from .grid import Point, Grid
 
 
@@ -70,19 +71,18 @@ class TextDiagram:
     def _optimization(self):
         empty_lines = []
         for line in self._lines:
-            # v = self._split_lines(line)
-            # if v != []:
-            #     print('###>', line, v[0].value, v[0].x)
-            # else:
-            #     print('<<<', line)
             len_lspace = len(line.value) - len(line.value.lstrip())
             line.x = len_lspace
             line.value = line.value.strip()
-            #print(line.value, len_lspace, '<')
 
             if line.value == '':
                 empty_lines.append(line)
-        self._lines = list(set(self._lines) - set(empty_lines))
+        # Remove duplicates and sorted by vertical coordinates
+        self._lines = sorted(
+            list(set(self._lines) - set(empty_lines)),
+            key=lambda line: line.y
+        )
+
         self._is_optimize = True
 
     def __str__(self):
@@ -240,7 +240,7 @@ class AsciiParser:
         # for d in self.diagrams:
         #     print(d)
 
-        self.hierarchy()
+        # self.hierarchy()
 
     def intersection(self, rectangles):
         # Sorted by width
@@ -266,7 +266,8 @@ class AsciiParser:
                 return
 
     def _travel_hierarchy(self, rectangle, inc=0, prefix='├'):
-        print(" " * (4 * inc), prefix + '──►', rectangle)
+        print(" " * (4 * inc), sep="", end="")
+        print(prefix + '──►', rectangle)
         if rectangle.childs != []:
             for child_inc, child in enumerate(rectangle.childs):
                 child_prefix = '├'
@@ -291,8 +292,6 @@ class AsciiParser:
                 if (inc == len(rectangle_without_hierarchy) - 1):
                     prefix = '└'
                 print(prefix + '──►', rectangle)
-
-            print("=" * 50)
 
         sorted_rectangles = list(
             set(self.sorted_rectangles)
@@ -325,16 +324,20 @@ class AsciiParser:
         # Keep only points not included on Diagram's child
         grid_points_without_childs = []
         for point in grid_points:
+            new_point = copy.copy(point)
+            new_point.y = point.y - rectangle.y + 1
             for child in rectangle.childs:
                 if(
                     point.x >= child.x and point.x <= child.x2
                     and point.y >= child.y and point.y <= child.y2
                 ):
-                    point.value = " "
-                    text.add(point)
+                    new_point.value = " "
+                    text.add(new_point)
                 else:
-                    print(point)
-                    text.add(point)
+                    #if point.value != " ":
+                        #print(rectangle.y, "<===>", new_point.y, "<==>", point.y)
+                    text.add(new_point)
+        #print('=================')
 
         # only leaft objects
         if rectangle.childs == []:

@@ -47,3 +47,11 @@ def test_heritage_1(tmpdir):
         tmpdir, 'heritage_1.txt', 'heritage_1.svg'
     )
     assert str_to_compare[0] == str_to_compare[1]
+
+
+def test_heritage_2(tmpdir):
+    """ ... """
+    str_to_compare = paths_to_str(
+        tmpdir, 'heritage_2.txt', 'heritage_2.svg'
+    )
+    assert str_to_compare[0] == str_to_compare[1]
